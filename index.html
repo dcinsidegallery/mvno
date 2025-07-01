@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>알뜰폰 계산기 with 디시인사이드 알뜰폰 갤러리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1f2937;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      animation: fadein 0.3s, fadeout 0.3s 2.7s;
+      z-index: 9999;
+    }
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeout {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(10px); }
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900 max-w-3xl mx-auto px-4 py-10">
+  <h1 class="text-3xl font-bold text-center mb-8">알뜰폰 계산기 with 디시인사이드 알뜰폰 갤러리</h1>
+
+  <!-- 요약 -->
+  <div class="bg-gray-100 p-5 rounded-lg shadow mb-8">
+    <h3 class="text-lg font-semibold mb-2">가입 현황 요약</h3>
+    <p><strong>최근 180일 개통 횟수:</strong> <span id="summary-activation-count">0</span>회</p>
+    <p><strong>잔여 개통 가능 횟수:</strong> <span id="summary-remaining-count">3</span>회</p>
+    <div class="mt-4">
+      <strong>망별 회선 보유 현황:</strong>
+      <ul class="list-disc ml-5 mt-1" id="network-counts"></ul>
+    </div>
+  </div>
+
+  <!-- 버튼 섹션 -->
+  <div class="flex flex-col sm:flex-row gap-4 mb-6">
+    <button class="bg-black text-white px-4 py-2 rounded font-medium w-full" onclick="exportData()">내보내기</button>
+    <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)" />
+    <button class="bg-gray-800 text-white px-4 py-2 rounded font-medium w-full" onclick="document.getElementById('import-file').click()">불러오기</button>
+  </div>
+
+  <!-- 입력 폼 시작 -->
+  <form onsubmit="event.preventDefault(); calculate()" class="space-y-4 mb-10">
+    <div>
+      <label for="activation-date" class="block font-semibold mb-1">개통일자 <span class="text-red-500">*</span></label>
+      <input type="date" id="activation-date" required class="w-full border border-gray-300 rounded px-3 py-2" />
+    </div>
+
+    <div>
+      <label for="carrier" class="block font-semibold mb-1">통신사 <span class="text-red-500">*</span></label>
+      <select id="carrier" onchange="toggleCustomCarrier()" required class="w-full border border-gray-300 rounded px-3 py-2">
+        <option value="">선택</option>
+        <option value="SKT">SKT</option>
+        <option value="KT">KT</option>
+        <option value="LG U+">LG U+</option>
+        <option value="A모바일">A모바일</option>
+        <option value="KG모바일">KG모바일</option>
+        <option value="WELL">WELL</option>
+        <option value="스마텔">스마텔</option>
+        <option value="슈가모바일">슈가모바일</option>
+        <option value="이야기모바일">이야기모바일</option>
+        <option value="핀다이렉트">핀다이렉트</option>
+        <option value="프리티">프리티</option>
+        <option value="토스모바일">토스모바일</option>
+        <option value="찬스모바일">찬스모바일</option>
+        <option value="이지모바일">이지모바일</option>
+        <option value="에르엘모바일">에르엘모바일</option>
+        <option value="인스모바일">인스모바일</option>
+        <option value="마블링">마블링</option>
+        <option value="에스원안심모바일">에스원안심모바일</option>
+        <option value="티플러스">티플러스</option>
+        <option value="아시아모바일">아시아모바일</option>
+        <option value="코인샷 모바일">코인샷 모바일</option>
+        <option value="한패스모바일">한패스모바일</option>
+        <option value="기타">기타</option>
+        <option value="직접입력">직접입력</option>
+      </select>
+      <input type="text" id="custom-carrier-input" placeholder="통신사 입력" class="mt-2 w-full border border-gray-300 rounded px-3 py-2 hidden" />
+    </div>
+
+    <div>
+      <label for="network" class="block font-semibold mb-1">망 선택 <span class="text-red-500">*</span></label>
+      <select id="network" required class="w-full border border-gray-300 rounded px-3 py-2">
+        <option value="">선택</option>
+        <option value="SKT">SKT</option>
+        <option value="KT">KT</option>
+        <option value="LG">LG</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="price" class="block font-semibold mb-1">월 요금(원) <span class="text-red-500">*</span></label>
+      <input type="number" id="price" placeholder="예: 24000" required class="w-full border border-gray-300 rounded px-3 py-2" />
+    </div>
+
+    <div class="flex items-center gap-3">
+      <input type="checkbox" id="mettugi-check" class="w-4 h-4" />
+      <label for="mettugi-check" class="font-semibold">메뚜기</label>
+      <select id="mettugi-month" class="border border-gray-300 rounded px-2 py-1 hidden">
+        <option value="">개월 선택</option>
+      </select>
+    </div>
+
+    <button type="submit" class="bg-black text-white font-bold py-2 rounded w-full mt-2">계산하기</button>
+  </form>
+
+  <!-- 결과 -->
+  <div id="result" class="hidden bg-gray-100 rounded-lg p-5 mb-10 shadow">
+    <h2 class="text-xl font-bold mb-4">계산 결과</h2>
+    <p><strong>개통일자:</strong> <span id="result-date"></span></p>
+    <p><strong>통신사(망):</strong> <span id="result-carrier"></span></p>
+    <p><strong>월 요금:</strong> <span id="result-price"></span>원</p>
+    <p><strong>중립번이 가능일자(D+15):</strong> <span id="port-date"></span></p>
+    <p><strong>최소유지기간(D+90):</strong> <span id="min-period"></span></p>
+    <p><strong>최근 180일 개통 횟수:</strong> <span id="activation-count"></span>회</p>
+    <p><strong>잔여 개통 가능 횟수:</strong> <span id="remaining-count"></span>회</p>
+    <p id="promotion-end-row" class="hidden"><strong>프로모션 종료 예정일:</strong> <span id="promotion-end"></span></p>
+  </div>
+
+  <!-- 개통 이력 -->
+  <div class="border-t border-gray-200 pt-6">
+    <h2 class="text-xl font-bold mb-4">개통 이력</h2>
+    <div class="flex flex-wrap gap-4 mb-4">
+      <div>
+        <label class="block font-medium mb-1">통신사별 필터</label>
+        <select id="carrier-filter" class="border border-gray-300 rounded px-3 py-1" onchange="loadHistory()">
+          <option value="">전체</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium mb-1">망별 필터</label>
+        <select id="network-filter" class="border border-gray-300 rounded px-3 py-1" onchange="loadHistory()">
+          <option value="">전체</option>
+          <option value="SKT">SKT</option>
+          <option value="KT">KT</option>
+          <option value="LG">LG</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium mb-1">정렬 기준</label>
+        <select id="sort-by" class="border border-gray-300 rounded px-3 py-1" onchange="loadHistory()">
+          <option value="date">개통일자</option>
+          <option value="price">월 요금</option>
+          <option value="recent">최근 추가일</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium mb-1">정렬 방식</label>
+        <select id="sort-order" class="border border-gray-300 rounded px-3 py-1" onchange="loadHistory()">
+          <option value="desc">내림차순</option>
+          <option value="asc">오름차순</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="history-list" class="space-y-4"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      for (let i = 1; i <= 24; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.text = i + '개월';
+        document.getElementById('mettugi-month').appendChild(option);
+      }
+
+      document.getElementById('mettugi-check').addEventListener('change', (event) => {
+        document.getElementById('mettugi-month').classList.toggle('hidden', !event.target.checked);
+      });
+
+      populateCarrierFilter();
+      loadHistory();
+      updateSummary();
+    });
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.getElementById('toast-container').appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function toggleCustomCarrier() {
+      const carrier = document.getElementById('carrier').value;
+      document.getElementById('custom-carrier-input').classList.toggle('hidden', carrier !== '직접입력');
+    }
+
+    function formatDate(date) {
+      const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDays(date, d) {
+      const result = new Date(date);
+      result.setDate(result.getDate() + d);
+      return result;
+    }
+
+    function addMonths(date, m) {
+      const result = new Date(date);
+      result.setMonth(result.getMonth() + m);
+      return result;
+    }
+
+    function calculate() {
+      const dateVal = document.getElementById('activation-date').value;
+      const carrierSel = document.getElementById('carrier');
+      let carrier = carrierSel.value;
+      const customCarrier = document.getElementById('custom-carrier-input').value.trim();
+      const network = document.getElementById('network').value;
+      const priceVal = document.getElementById('price').value;
+      const mettugi = document.getElementById('mettugi-check').checked;
+      const mettugiMonth = mettugi ? parseInt(document.getElementById('mettugi-month').value) : null;
+
+      if (!dateVal || !network || !priceVal || (carrier === '직접입력' && !customCarrier)) {
+        showToast("필수 정보를 입력해주세요.");
+        return;
+      }
+
+      if (carrier === '직접입력') carrier = customCarrier;
+
+      const activationDate = new Date(dateVal);
+      const price = Number(priceVal);
+      const data = {
+        id: crypto.randomUUID(),
+        date: formatDate(activationDate),
+        carrier,
+        network,
+        price,
+        portDate: formatDate(addDays(activationDate, 15)),
+        minPeriod: formatDate(addDays(activationDate, 90)),
+        mettugi,
+        mettugiMonth,
+        promotionEnd: mettugi ? formatDate(addMonths(activationDate, mettugiMonth)) : null
+      };
+
+      saveActivation(data);
+      renderResult(data);
+      resetForm();
+      updateSummary();
+    }
+
+    function renderResult(d) {
+      document.getElementById('result-date').textContent = d.date;
+      document.getElementById('result-carrier').textContent = `${d.carrier}(${d.network}망)`;
+      document.getElementById('result-price').textContent = d.price.toLocaleString();
+      document.getElementById('port-date').textContent = d.portDate;
+      document.getElementById('min-period').textContent = d.minPeriod;
+      document.getElementById('promotion-end-row').classList.toggle('hidden', !d.promotionEnd);
+      if (d.promotionEnd) {
+        document.getElementById('promotion-end').textContent = d.promotionEnd;
+      }
+      document.getElementById('result').classList.remove('hidden');
+    }
+
+    function saveActivation(data) {
+      const list = JSON.parse(localStorage.getItem('activations') || '[]');
+      list.push(data);
+      localStorage.setItem('activations', JSON.stringify(list));
+      populateCarrierFilter();
+      loadHistory();
+    }
+
+    function resetForm() {
+      document.querySelector("form").reset();
+      document.getElementById('custom-carrier-input').classList.add('hidden');
+      document.getElementById('mettugi-month').classList.add('hidden');
+    }
+
+    function populateCarrierFilter() {
+      const data = JSON.parse(localStorage.getItem('activations') || '[]');
+      const select = document.getElementById('carrier-filter');
+      const carriers = Array.from(new Set(data.map(i => i.carrier)));
+      select.innerHTML = '<option value="">전체</option>';
+      carriers.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        select.appendChild(opt);
+      });
+    }
+
+    function updateSummary() {
+      const list = JSON.parse(localStorage.getItem('activations') || '[]');
+      const now = new Date();
+      const count = list.filter(a => new Date(a.date) >= addDays(now, -180)).length;
+      document.getElementById('summary-activation-count').textContent = count;
+      document.getElementById('summary-remaining-count').textContent = Math.max(0, 3 - count);
+      document.getElementById('activation-count').textContent = count;
+      document.getElementById('remaining-count').textContent = Math.max(0, 3 - count);
+
+      const map = { SKT: 0, KT: 0, LG: 0 };
+      list.forEach(a => { if (map[a.network] !== undefined) map[a.network]++; });
+      const ul = document.getElementById('network-counts');
+      ul.innerHTML = '';
+      for (const key in map) {
+        const li = document.createElement('li');
+        li.textContent = `${key}: ${map[key]}회선`;
+        ul.appendChild(li);
+      }
+    }
+
+    function loadHistory() {
+      const list = JSON.parse(localStorage.getItem('activations') || '[]');
+      const carrierFilter = document.getElementById('carrier-filter').value;
+      const networkFilter = document.getElementById('network-filter').value;
+      const sortBy = document.getElementById('sort-by').value;
+      const sortOrder = document.getElementById('sort-order').value;
+
+      let result = list.filter(a => (!carrierFilter || a.carrier === carrierFilter));
+      result = result.filter(a => (!networkFilter || a.network === networkFilter));
+
+      result.sort((a, b) => {
+        let va = sortBy === 'price' ? a.price : sortBy === 'recent' ? a.id : new Date(a.date);
+        let vb = sortBy === 'price' ? b.price : sortBy === 'recent' ? b.id : new Date(b.date);
+        return sortOrder === 'asc' ? va - vb : vb - va;
+      });
+
+      const container = document.getElementById('history-list');
+      container.innerHTML = '';
+      if (result.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">조건에 맞는 개통 이력이 없습니다.</p>';
+      } else {
+        result.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'bg-white p-4 rounded-lg shadow';
+          div.innerHTML = `
+            <div><strong>${item.date}</strong> | ${item.carrier}(${item.network}망) | ${item.price.toLocaleString()}원
+              <button onclick="deleteItem('${item.id}')" class="ml-3 text-sm text-red-600 font-semibold hover:underline">삭제</button>
+            </div>
+            <div class="mt-2 text-sm text-gray-700">
+              <div>중립번이 가능일자: ${item.portDate}</div>
+              <div>최소유지기간: ${item.minPeriod}</div>
+              ${item.promotionEnd ? `<div>프로모션 종료일: ${item.promotionEnd}</div>` : ''}
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      }
+    }
+
+    function deleteItem(id) {
+      if (!confirm('삭제하시겠습니까?')) return;
+      let list = JSON.parse(localStorage.getItem('activations') || '[]');
+      list = list.filter(item => item.id !== id);
+      localStorage.setItem('activations', JSON.stringify(list));
+      populateCarrierFilter();
+      loadHistory();
+      updateSummary();
+    }
+
+    function exportData() {
+      const data = localStorage.getItem('activations') || '[]';
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'dcinsidemvnogallery.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (Array.isArray(data)) {
+            localStorage.setItem('activations', JSON.stringify(data));
+            populateCarrierFilter();
+            loadHistory();
+            updateSummary();
+            showToast('불러오기 완료!');
+          } else {
+            showToast('올바른 JSON 형식이 아닙니다.');
+          }
+        } catch {
+          showToast('파일을 읽는데 오류 발생!');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+  </script>
+</body>
+</html>
